@@ -1,83 +1,79 @@
-cmake_minimum_required(VERSION 3.11)
-# The FetchModule is only available since CMake 3.11.
+cmake_minimum_required(VERSION 3.4)
 
-set(lib_base_name CrazySentencesOnlineModuleRender)
-project(${lib_base_name} VERSION 1.0.0 LANGUAGES CXX)
-set(RELEASE_DIR "${CMAKE_BINARY_DIR}/${lib_base_name}/")
+set(PROJECT_NAME CrazySentencesOnlineModuleRender)
+project(${PROJECT_NAME} VERSION 1.0.0 LANGUAGES CXX)
+set(RELEASE_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}/")
+set(INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${RELEASE_DIR})
 
-# Configurable Options
-OPTION(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-OPTION(BUILD_STATIC_LIBS "Build static libraries" ON)
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(BUILD_STATIC_LIBS "Build static library" OFF)
+option(BUILD_EXAMPLES "Build example executables" ON)
 
 set(CMAKE_CXX_STANDARD 17)
-
-include(ExternalProject)
-include(CMakePackageConfigHelpers)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10")
+set(CMAKE_CXX_FLAGS "-g -Og -m64 -Wa,-mbig-obj")
+#set(CMAKE_CXX_FLAGS "-O3")
+#set(CMAKE_SHARED_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+set(CMAKE_BUILD_TYPE "Release")
 
 find_package(OGRE 1.09 REQUIRED)
-find_package(Boost 1.56 REQUIRED COMPONENTS
-             system filesystem)
+find_package(Boost REQUIRED COMPONENTS
+             coroutine system filesystem)
 
-# third party
-set(INCLUDE_DIRECTORIES
-  third_party/imgui/include/
-  third_party/rapidjson/include/
-  third_party/ogre/include/
-  third_party/ogre/include/OGRE/
-  #${OGRE_INCLUDE_DIRS}
-  src/modules
+include_directories(
+    third_party/imgui/include/
+    third_party/rapidjson/include/
+    third_party/ogre/include/
+    third_party/ogre/include/OGRE/
+    #${OGRE_INCLUDE_DIRS}
+    src/modules
 )
 
-set(LINK_DIRECTORIES
-  third_party/imgui/lib/
-  third_party/ogre/lib/
-  third_party/ogre/lib/OGRE/
-  #${OGRE_LIBRARY_DIRS}
-  third_party/Module-Manager/lib/
-  third_party/Settings-Manager/lib/
+link_directories(
+    third_party/imgui/lib/
+    third_party/ogre/lib/
+    third_party/ogre/lib/OGRE/
+    #${OGRE_LIBRARY_DIRS}
+    third_party/Module-Manager/lib/
+    third_party/Settings-Manager/lib/
 )
-
-# MODULES
-add_subdirectory(modules/)
-add_subdirectory(third_party/)
-add_subdirectory(third_party/assimp-xnalara/)
-add_subdirectory(third_party/imgui/)
-add_subdirectory(samples/viewer/)
 
 # Set up source files
 set(SOURCES
-  src/Module.cpp
+    src/Module.cpp
 
-  src/core/AssimpLoader.cpp
-  src/core/AssimpOgreUtility.cpp
+    src/core/AssimpLoader.cpp
+    src/core/AssimpOgreUtility.cpp
 
-  src/UI/Client.cpp
-  src/UI/SceneMenu.cpp
-  src/UI/SGTechniqueResolverListener.cpp
-  src/UI/OgreApplication.cpp
+    src/UI/Client.cpp
+    src/UI/SceneMenu.cpp
+    src/UI/SGTechniqueResolverListener.cpp
+    src/UI/OgreApplication.cpp
 )
 
 set(HEADERS
-  ${PROJECT_SOURCE_DIR}/src/Module.hpp
-  ${PROJECT_SOURCE_DIR}/src/Interface.hpp
-  ${PROJECT_SOURCE_DIR}/src/core/config.hpp
-  ${PROJECT_SOURCE_DIR}/src/core/AssimpLoader.hpp
-  ${PROJECT_SOURCE_DIR}/src/core/AssimpOgreUtility.hpp
+    ${PROJECT_SOURCE_DIR}/src/Module.hpp
+    ${PROJECT_SOURCE_DIR}/src/Interface.hpp
+    ${PROJECT_SOURCE_DIR}/src/core/config.hpp
+    ${PROJECT_SOURCE_DIR}/src/core/AssimpLoader.hpp
+    ${PROJECT_SOURCE_DIR}/src/core/AssimpOgreUtility.hpp
 
-  ${PROJECT_SOURCE_DIR}/src/UI/Client.hpp
-  ${PROJECT_SOURCE_DIR}/src/UI/SceneMenu.hpp
-  ${PROJECT_SOURCE_DIR}/src/UI/SGTechniqueResolverListener.hpp
-  ${PROJECT_SOURCE_DIR}/src/UI/OgreApplication.hpp
+    ${PROJECT_SOURCE_DIR}/src/UI/Client.hpp
+    ${PROJECT_SOURCE_DIR}/src/UI/SceneMenu.hpp
+    ${PROJECT_SOURCE_DIR}/src/UI/SGTechniqueResolverListener.hpp
+    ${PROJECT_SOURCE_DIR}/src/UI/OgreApplication.hpp
 )
 
 set(SHARED_COMPILE_DEFINITIONS
   -DSHARED_LIBRARY
-  #-DGLEW_STATIC
 )
 
 set(STATIC_COMPILE_DEFINITIONS
   -DSTATIC_LIBRARY
-  #-DGLEW_STATIC
 )
 
 set(LIBRARIES ${LIBRARIES}
@@ -103,82 +99,56 @@ set(LIBRARIES ${LIBRARIES}
 
 if(WIN32)
     set(LIBRARIES ${LIBRARIES}
-        #OgreGLSupport
+        # Windows Libraries
+        # OgreGLSupport
         glew32
         opengl32
-
-        # Windows Libraries
     )
 elseif(UNIX)
     set(LIBRARIES ${LIBRARIES}
-        #OgreGLSupport
+        # Unix Libraries
+        # OgreGLSupport
         GLEW
         GL
-
-        # Unix Libraries
     )
 endif()
-
 
 set(SHARED_LINK_LIBRARIES ${LIBRARIES})
 set(STATIC_LINK_LIBRARIES ${LIBRARIES})
 
-link_directories(${LINK_DIRECTORIES})
+#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-# Set up library names
+include(CMakePackageConfigHelpers)
+
 if(BUILD_SHARED_LIBS)
-  set(lib_shared_name ${lib_base_name}Shared)
-  set(lib_shared_name_decorated ${lib_shared_name}${LIBNAME_ADDITION})
-  set(${lib_base_name}_SHARED_LIBRARY ${lib_shared_name_decorated}  CACHE STRING "name of static library for ${lib_base_name}" FORCE)
+  set(lib_shared_name ${PROJECT_NAME}-LibShared)
   message( STATUS "-- Building ${lib_shared_name}" )
-endif(BUILD_SHARED_LIBS)
-
-if(BUILD_STATIC_LIBS)
-  set(lib_name ${lib_base_name})
-  set(lib_name_decorated ${lib_name}${LIBNAME_ADDITION})
-  set(${lib_base_name}_STATIC_LIBRARY ${lib_name_decorated}  CACHE STRING "name of static library for ${lib_base_name}" FORCE)
-  message( STATUS "-- Building ${lib_name}" )
-endif(BUILD_STATIC_LIBS)
-
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-
-if(BUILD_SHARED_LIBS)
-  add_library(${lib_shared_name} SHARED  ${SOURCES} ${HEADERS})
-  target_compile_features(${lib_shared_name} PUBLIC cxx_std_17)
+  add_library(${lib_shared_name} SHARED ${SOURCES} ${HEADERS})
   set_property(TARGET ${lib_shared_name} PROPERTY VERSION "${PROJECT_VERSION}")
-  set_property(TARGET ${lib_shared_name} PROPERTY OUTPUT_NAME  "${lib_shared_name_decorated}")
   target_include_directories(${lib_shared_name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${INCLUDE_DIRECTORIES}
   )
-  set_target_properties(${lib_shared_name} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS "ON")
-  if(UNIX)
-      #set_property(TARGET ${lib_shared_name} PROPERTY POSITION_INDEPENDENT_CODE ON)
-  endif()
-  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${lib_shared_name}Version.cmake
-    VERSION ${PROJECT_VERSION}
-  COMPATIBILITY AnyNewerVersion )
+  #set_target_properties(${lib_shared_name} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS "ON")
 
   # Compile Definitions
   target_compile_definitions(${lib_shared_name} PUBLIC ${SHARED_COMPILE_DEFINITIONS})
   # Libraries to link
   target_link_libraries(${lib_shared_name} PUBLIC ${SHARED_LINK_LIBRARIES})
+    if(UNIX)
+        #set_target_properties(${lib_shared_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    endif()
 endif()
 
 if(BUILD_STATIC_LIBS)
-  add_library(${lib_name} STATIC  ${SOURCES} ${HEADERS})
-  target_compile_features(${lib_name} PUBLIC cxx_std_17)
+  set(lib_name ${PROJECT_NAME}-Lib)
+  message( STATUS "-- Building ${lib_name}" )
+  add_library(${lib_name} STATIC ${SOURCES} ${HEADERS})
   set_property(TARGET ${lib_name} PROPERTY VERSION "${PROJECT_VERSION}")
-  set_property(TARGET ${lib_name} PROPERTY OUTPUT_NAME  "${lib_name_decorated}")
   target_include_directories(${lib_name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${INCLUDE_DIRECTORIES}
   )
-  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${lib_name}Version.cmake
-    VERSION ${PROJECT_VERSION}
-  COMPATIBILITY AnyNewerVersion )
 
   # Compile Definitions
   target_compile_definitions(${lib_name} PUBLIC ${STATIC_COMPILE_DEFINITIONS})
@@ -186,54 +156,48 @@ if(BUILD_STATIC_LIBS)
   target_link_libraries(${lib_name} PUBLIC ${STATIC_LINK_LIBRARIES})
 endif()
 
-# Pre build
-if(BUILD_SHARED_LIBS)
-    add_custom_command(TARGET ${lib_shared_name} PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_SOURCE_DIR}/include/"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_SOURCE_DIR}/include/${lib_base_name}"
-        COMMAND ${CMAKE_COMMAND} -E copy ${HEADERS} "${PROJECT_SOURCE_DIR}/include/${lib_base_name}"
-    )
-endif()
+# THIRD PARTY
+add_subdirectory(modules/)
+add_subdirectory(third_party/)
+add_subdirectory(third_party/imgui/)
+
+# EXAMPLES
+add_subdirectory(src_example/viewer)
 
 # Post build
 if(BUILD_SHARED_LIBS)
-    add_custom_command(TARGET ${lib_shared_name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}/modules/"
-        #COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${lib_shared_name}> "${RELEASE_DIR}/modules/"
-        # Make a release directory without all the cmake extras.
-        # This directory can easily be archived and distributed.
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${application_name}/"
-        # Create release sub-folders
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}/fonts/"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}/modules/"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}/share/"
-        #COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}/RTShaderCache/"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/resources/" "${RELEASE_DIR}"
-        #COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/share/" "${RELEASE_DIR}/share"
-    )
-endif()
+  add_custom_command(TARGET ${lib_shared_name} POST_BUILD
+    # Make a release directory without all the cmake extras.
+    # This directory can easily be archived and distributed.
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}"
+    # Create release sub-folders
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}modules/"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${RELEASE_DIR}resources/"
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${lib_shared_name}> "${RELEASE_DIR}modules/"
+    #COMMAND ${CMAKE_COMMAND} -E remove $<TARGET_FILE:${lib_shared_name}>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/resources/" "${RELEASE_DIR}resources"
+    COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/settings/settings.json" "${RELEASE_DIR}settings.json"
+  )
+endif(BUILD_SHARED_LIBS)
 
 # Installation
 if(BUILD_SHARED_LIBS)
   message(STATUS "INSTALL: ${lib_shared_name} TO root=${CMAKE_BINARY_DIR} and current=${CMAKE_CURRENT_BINARY_DIR}")
   install(TARGETS ${lib_shared_name}
-    RUNTIME DESTINATION "${RELEASE_DIR}/modules"
-    ARCHIVE DESTINATION "${RELEASE_DIR}/modules"
-    LIBRARY DESTINATION "${RELEASE_DIR}/modules"
+    RUNTIME DESTINATION "${INSTALL_DIR}/modules"
+    ARCHIVE DESTINATION "${INSTALL_DIR}/modules"
+    LIBRARY DESTINATION "${INSTALL_DIR}/modules"
   )
-endif()
+endif(BUILD_SHARED_LIBS)
 
 if(BUILD_STATIC_LIBS)
   install(TARGETS ${lib_name} EXPORT ${lib_name}_TARGETS
-    RUNTIME DESTINATION "${RELEASE_DIR}/lib"
-    ARCHIVE DESTINATION "${RELEASE_DIR}/lib"
-    LIBRARY DESTINATION "${RELEASE_DIR}/lib"
+    RUNTIME DESTINATION "${INSTALL_DIR}/lib"
+    ARCHIVE DESTINATION "${INSTALL_DIR}/lib"
+    LIBRARY DESTINATION "${INSTALL_DIR}/lib"
   )
-endif()
+endif(BUILD_STATIC_LIBS)
 
 install(FILES ${HEADERS}
-  DESTINATION "${RELEASE_DIR}/headers"
+  DESTINATION "${INSTALL_DIR}/headers"
 COMPONENT Headers)
-
-install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" DESTINATION "${RELEASE_DIR}" RENAME "LICENSE.txt" )

@@ -10,7 +10,7 @@ include_directories(
   glew-2.1.0/include
 )
 
-set(SOURCES ${SOURCES}
+set(SOURCES
   imgui-1.75/imgui.cpp
   imgui-1.75/imgui_demo.cpp
   imgui-1.75/imgui_draw.cpp
